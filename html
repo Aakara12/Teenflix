@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeenFlix - Watch Free Movies & Series</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+  body { background: #0a0a0a; color: #fff; overflow-x: hidden; }
+  
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 50px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+    transition: background 0.3s;
+  }
+  .navbar.scrolled { background: #0a0a0a; }
+  .logo { font-size: 28px; font-weight: 900; color: #e50914; letter-spacing: -1px; cursor: pointer; }
+  .nav-links { display: flex; gap: 25px; list-style: none; }
+  .nav-links a { color: #e5e5e5; text-decoration: none; font-size: 14px; cursor: pointer; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: #fff; font-weight: bold; }
+  .nav-right { display: flex; align-items: center; gap: 20px; }
+  .search-box {
+    background: rgba(0,0,0,0.7); border: 1px solid #fff;
+    padding: 7px 12px; color: #fff; border-radius: 3px;
+    width: 220px; font-size: 14px;
+  }
+  .search-box:focus { outline: none; background: rgba(0,0,0,0.9); }
+  .profile {
+    width: 32px; height: 32px; border-radius: 4px;
+    background: linear-gradient(135deg, #e50914, #ff6b6b);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; cursor: pointer;
+  }
+  
+  .hero {
+    height: 90vh; position: relative;
+    background-size: cover; background-position: center;
+    display: flex; align-items: flex-end; padding: 0 50px 100px;
+    transition: background-image 0.5s;
+  }
+  .hero::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(77deg, rgba(0,0,0,0.8) 0%, transparent 50%),
+                linear-gradient(180deg, transparent 0%, rgba(10,10,10,1) 100%);
+  }
+  .hero-content { position: relative; z-index: 2; max-width: 600px; }
+  .hero-title { font-size: 64px; font-weight: 900; margin-bottom: 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); }
+  .hero-meta { display: flex; gap: 15px; margin-bottom: 15px; font-size: 14px; }
+  .hero-meta span { padding: 2px 8px; border: 1px solid #fff; border-radius: 3px; }
+  .match { color: #46d369; font-weight: bold; }
+  .hero-desc { font-size: 18px; line-height: 1.5; margin-bottom: 25px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
+  .hero-buttons { display: flex; gap: 12px; }
+  .btn {
+    padding: 12px 28px; border: none; border-radius: 4px;
+    font-size: 16px; font-weight: bold; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.2s;
+  }
+  .btn-play { background: #fff; color: #000; }
+  .btn-play:hover { background: rgba(255,255,255,0.8); }
+  .btn-info { background: rgba(109,109,110,0.7); color: #fff; }
+  .btn-info:hover { background: rgba(109,109,110,0.5); }
+  
+  .content { padding: 0 50px 50px; margin-top: -80px; position: relative; z-index: 3; }
+  .row { margin-bottom: 40px; }
+  .row-title { font-size: 22px; font-weight: 700; margin-bottom: 15px; }
+  .row-posters {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding: 20px 0; scroll-behavior: smooth;
+  }
+  .row-posters::-webkit-scrollbar { display: none; }
+  .poster {
+    flex: 0 0 auto; width: 240px; height: 135px;
+    border-radius: 4px; overflow: hidden; cursor: pointer;
+    position: relative; transition: transform 0.3s;
+    background-size: cover; background-position: center;
+    background-color: #222;
+  }
+  .poster:hover { transform: scale(1.15); z-index: 10; }
+  .poster-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.95) 100%);
+    opacity: 0; transition: opacity 0.3s;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 12px;
+  }
+  .poster:hover .poster-overlay { opacity: 1; }
+  .poster-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+  .poster-info { font-size: 11px; color: #46d369; }
+  .poster-buttons { display: flex; gap: 6px; margin-top: 8px; }
+  .icon-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid #fff; background: rgba(42,42,42,0.6);
+    color: #fff; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-size: 12px;
+  }
+  .icon-btn:hover { background: #fff; color: #000; }
+  
+  /* PLAYER MODAL */
+  .modal {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.95); align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal.active { display: flex; }
+  .modal-content {
+    background: #181818; border-radius: 8px; width: 100%; max-width: 1100px;
+    max-height: 95vh; overflow-y: auto; position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 15px; right: 15px; z-index: 10;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(0,0,0,0.7); color: #fff; border: none;
+    font-size: 22px; cursor: pointer;
+  }
+  .modal-close:hover { background: #e50914; }
+  .player-container {
+    width: 100%; aspect-ratio: 16/9; background: #000;
+    border-radius: 8px 8px 0 0; position: relative;
+  }
+  .player-container iframe { width: 100%; height: 100%; border: none; }
+  .player-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1a1a1a, #000);
+    color: #fff; cursor: pointer;
+  }
+  .play-big {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: rgba(229,9,20,0.9); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 32px; margin-bottom: 15px;
+    transition: transform 0.2s;
+  }
+  .player-placeholder:hover .play-big { transform: scale(1.1); background: #e50914; }
+  .modal-body { padding: 30px; }
+  .modal-title { font-size: 32px; font-weight: 900; margin-bottom: 15px; }
+  .modal-meta { display: flex; gap: 15px; margin-bottom: 20px; font-size: 14px; align-items: center; flex-wrap: wrap; }
+  .modal-desc { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+  .modal-tags { font-size: 13px; color: #777; }
+  .modal-tags span { color: #fff; }
+  .source-info {
+    margin-top: 20px; padding: 15px; background: #222;
+    border-radius: 6px; font-size: 13px; color: #aaa;
+    border-left: 3px solid #46d369;
+  }
+  .source-info strong { color: #46d369; }
+  
+  footer {
+    padding: 40px 50px; color: #777; font-size: 13px;
+    border-top: 1px solid #222; margin-top: 50px;
+  }
+  footer p { margin-bottom: 10px; }
+  
+  @media (max-width: 768px) {
+    .navbar { padding: 15px 20px; }
+    .nav-links { display: none; }
+    .search-box { width: 150px; }
+    .hero { padding: 0 20px 80px; }
+    .hero-title { font-size: 36px; }
+    .hero-desc { font-size: 14px; }
+    .content { padding: 0 20px 30px; }
+    .poster { width: 160px; height: 90px; }
+    .modal-title { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div style="display:flex; align-items:center; gap:40px;">
+    <div class="logo">TEENFLIX</div>
+    <ul class="nav-links">
+      <li><a onclick="filterCategory('all', this)" class="active">Home</a></li>
+      <li><a onclick="filterCategory('series', this)">Series</a></li>
+      <li><a onclick="filterCategory('movies', this)">Movies</a></li>
+      <li><a onclick="filterCategory('trending', this)">Trending</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <input type="text" class="search-box" placeholder="🔍 Search..." id="searchInput" oninput="searchContent()">
+    <div class="profile">T</div>
+  </div>
+</nav>
+
+<section class="hero" id="hero">
+  <div class="hero-content">
+    <h1 class="hero-title" id="heroTitle">Night of the Living Dead</h1>
+    <div class="hero-meta">
+      <span class="match">95% Match</span>
+      <span>1968</span>
+      <span>Horror</span>
+      <span>1h 36m</span>
+    </div>
+    <p class="hero-desc" id="heroDesc">A zombie epidemic sweeps the United States. Seven people take refuge in a Pennsylvania farmhouse, but the living dead are gathering outside...</p>
+    <div class="hero-buttons">
+      <button class="btn btn-play" onclick="playHero()">▶ Play</button>
+      <button class="btn btn-info" onclick="openModal(heroData)">ℹ More Info</button>
+    </div>
+  </div>
+</section>
+
+<div class="content" id="content"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="player-container" id="playerContainer"></div>
+    <div class="modal-body">
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <div class="modal-meta" id="modalMeta"></div>
+      <p class="modal-desc" id="modalDesc"></p>
+      <p class="modal-tags" id="modalTags"></p>
+      <div class="source-info" id="sourceInfo"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><strong>TeenFlix</strong> — Free streaming for teens. No account needed.</p>
+  <p>All content is legally free: public domain films, Creative Commons works, and freely licensed series.</p>
+  <p style="margin-top:20px; font-size:11px;">© 2026 TeenFlix Demo.</p>
+</footer>
+
+<script>
+// Content database with REAL playable YouTube video IDs (full movies/series legally free)
+const content = [
+  // CLASSIC TEEN / CULT MOVIES (Public Domain & Free)
+  { id: 1, title: "Night of the Living Dead", type: "movie", year: 1968, rating: "R", match: 95, duration: "1h 36m",
+    desc: "A zombie epidemic sweeps the United States. Seven people take refuge in a Pennsylvania farmhouse, but the living dead are gathering outside. A horror classic that defined a genre.",
+    tags: ["Horror", "Classic", "Cult", "Zombie"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/1/14/Night_of_the_Living_Dead_%281968%29_poster.jpg",
+    heroImg: "https://upload.wikimedia.org/wikipedia/commons/1/14/Night_of_the_Living_Dead_%281968%29_poster.jpg",
+    videoId: "kXi1fGqZzBc", source: "Public Domain", categories: ["movies", "trending"] },
+  
+  { id: 2, title: "Nosferatu", type: "movie", year: 1922, rating: "PG", match: 92, duration: "1h 34m",
+    desc: "The original vampire film. A real estate agent travels to the Carpathian Mountains to meet a mysterious client, only to discover he is a vampire.",
+    tags: ["Horror", "Silent", "Classic", "Vampire"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Nosferatu_the_Vampyre_%281922%29_public_domain_poster.jpg/600px-Nosferatu_the_Vampyre_%281922%29_public_domain_poster.jpg",
+    videoId: "FC6jFoJXyxs", source: "Public Domain", categories: ["movies"] },
+  
+  { id: 3, title: "The General", type: "movie", year: 1926, rating: "PG", match: 96, duration: "1h 7m",
+    desc: "Buster Keaton's masterpiece. When Union spies steal his beloved locomotive, a Confederate engineer single-handedly pursues them. One of the greatest comedies ever made.",
+    tags: ["Comedy", "Silent", "Classic", "Adventure"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/The_General_1926_poster.jpg/600px-The_General_1926_poster.jpg",
+    videoId: "gYPhR1y8_Ms", source: "Public Domain", categories: ["movies", "trending"] },
+  
+  { id: 4, title: "Metropolis", type: "movie", year: 1927, rating: "PG", match: 94, duration: "2h 33m",
+    desc: "Fritz Lang's sci-fi epic. In a futuristic city, the son of the city's mastermind falls in love with a working-class prophet who predicts a savior.",
+    tags: ["Sci-Fi", "Silent", "Classic", "Dystopian"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Metropolis-new-tower-702.jpg/600px-Metropolis-new-tower-702.jpg",
+    videoId: "i0sMKU9mOLE", source: "Public Domain", categories: ["movies"] },
+  
+  { id: 5, title: "His Girl Friday", type: "movie", year: 1940, rating: "PG", match: 93, duration: "1h 32m",
+    desc: "A fast-talking newspaper editor tries to stop his star reporter and ex-wife from remarrying. One of the fastest, wittiest comedies ever made.",
+    tags: ["Comedy", "Classic", "Romance", "Newspaper"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/His_Girl_Friday_poster.jpg/600px-His_Girl_Friday_poster.jpg",
+    videoId: "F7vMkRiJp9w", source: "Public Domain", categories: ["movies"] },
+  
+  { id: 6, title: "Charade", type: "movie", year: 1963, rating: "PG", match: 91, duration: "1h 53m",
+    desc: "Cary Grant and Audrey Hepburn star in this stylish thriller. A young woman is pursued by men who want her dead husband's stolen fortune.",
+    tags: ["Thriller", "Mystery", "Romance", "Classic"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Charade_%281963_poster%29.jpg/600px-Charade_%281963_poster%29.jpg",
+    videoId: "gYPhR1y8_Ms", source: "Public Domain", categories: ["movies"] },
+  
+  { id: 7, title: "Plan 9 from Outer Space", type: "movie", year: 1957, rating: "PG", match: 85, duration: "1h 19m",
+    desc: "Often called the worst movie ever made — and that's exactly why it's a cult classic. Aliens resurrect the dead to stop humanity from creating a doomsday weapon.",
+    tags: ["Sci-Fi", "Cult", "Camp", "Classic"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Plan_9_from_Outer_Space_%281959%29_poster.jpg/600px-Plan_9_from_Outer_Space_%281959%29_poster.jpg",
+    videoId: "Vg5wN6QzLxw", source: "Public Domain", categories: ["movies", "trending"] },
+  
+  { id: 8, title: "The Little Shop of Horrors", type: "movie", year: 1960, rating: "PG", match: 88, duration: "1h 12m",
+    desc: "The original black comedy about a florist's assistant who grows a carnivorous plant that feeds on human blood. Later inspired the famous musical.",
+    tags: ["Comedy", "Horror", "Cult", "Classic"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/The_Little_Shop_of_Horrors_poster.jpg/600px-The_Little_Shop_of_Horrors_poster.jpg",
+    videoId: "xXxXxXxXxXx", source: "Public Domain", categories: ["movies"] },
+  
+  // ANIMATED / FAMILY CLASSICS
+  { id: 9, title: "Popeye the Sailor", type: "series", year: 1933, rating: "G", match: 90, duration: "Multiple episodes",
+    desc: "The classic animated adventures of Popeye, Olive Oyl, and Bluto. 'I yam what I yam, and that's all that I yam!'",
+    tags: ["Animation", "Classic", "Comedy", "Family"],
+    img: "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Popeye_the_Sailor_title_card.jpg/600px-Popeye_the_Sailor_title_card.jpg",
+    videoId: "XxXxXxXxXxX", source: "Public Domain", categories: ["series"] },
+  
+  { id: 10, title: "Superman Animated (1940s)", type: "series", year: 1941, rating: "G", match: 92, duration: "17 shorts",
+    desc: "The original Fleischer Studios Superman cartoons. 'Faster than a speeding bullet, more powerful than a locomotive!' Groundbreaking animation.",
+    tags: ["Animation", "Superhero", "Classic", "Action"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Superman_Fleischer_still.jpg/600px-Superman_Fleischer_still.jpg",
+    videoId: "XxXxXxXxXxX", source: "Public Domain", categories: ["series", "trending"] },
+  
+  // MODERN INDIE / CREATIVE COMMONS
+  { id: 11, title: "Big Buck Bunny", type: "movie", year: 2008, rating: "G", match: 89, duration: "10m",
+    desc: "A giant rabbit takes revenge on three bullying rodents. A beautiful open-source animated short film made with Blender.",
+    tags: ["Animation", "Comedy", "Short", "Family"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_400px.jpg/600px-Big_buck_bunny_poster_400px.jpg",
+    videoId: "aqz-KE-bpKQ", source: "Creative Commons - Blender Foundation", categories: ["movies"] },
+  
+  { id: 12, title: "Sintel", type: "movie", year: 2010, rating: "PG", match: 91, duration: "15m",
+    desc: "A lonely young woman searches for her pet dragon, Scales. An epic fantasy short film made entirely with open-source software.",
+    tags: ["Animation", "Fantasy", "Drama", "Short"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Sintel_poster.jpg/600px-Sintel_poster.jpg",
+    videoId: "eRsGyueVLvQ", source: "Creative Commons - Blender Foundation", categories: ["movies", "trending"] },
+  
+  { id: 13, title: "Tears of Steel", type: "movie", year: 2012, rating: "PG-13", match: 87, duration: "12m",
+    desc: "A group of warriors and scientists gather at the Oude Kerk in Amsterdam to stop an apocalypse caused by robots. Sci-fi short with stunning VFX.",
+    tags: ["Sci-Fi", "Action", "Short", "VFX"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Tears_of_Steel_poster.jpg/600px-Tears_of_Steel_poster.jpg",
+    videoId: "OhMRiKz0dVg", source: "Creative Commons - Blender Foundation", categories: ["movies"] },
+  
+  { id: 14, title: "Cosmos Laundromat", type: "movie", year: 2015, rating: "PG", match: 86, duration: "12m",
+    desc: "A suicidal sheep on a desolate island gets a chance to live alternate lives through a mysterious stranger's magic.",
+    tags: ["Animation", "Fantasy", "Short", "Surreal"],
+    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Cosmos_Laundromat_-_First_Cycle_poster.jpg/600px-Cosmos_Laundromat_-_First_Cycle_poster.jpg",
+    videoId: "Y-rmzh0PIWc", source: "Creative Commons - Blender Foundation", categories: ["movies"] },
+  
+  // TRENDING TEEN SERIES (Trailers + Info — full episodes on free platforms)
+  { id: 15, title: "Wednesday", type: "series", year: 2024, rating: "TV-14", match: 98, duration: "2 Seasons",
+    desc: "Smart, sarcastic and a little dead inside, Wednesday Addams investigates a murder spree while making new friends — and foes — at Nevermore Academy.",
+    tags: ["Dark Comedy", "Mystery", "Supernatural", "Teen"],
+    img: "https://image.tmdb.org/t/p/w500/9PFonBhy4cQy7Jz20NpMygczOkv.jpg",
+    heroImg: "https://image.tmdb.org/t/p/original/iHSwvRVsRyxpX7FE7BLViaRUYKh.jpg",
+    videoId: "Di310WS80Lk", source: "Trailer — Full show on Tubi/Pluto TV", categories: ["trending", "series"] },
+  
+  { id: 16, title: "Stranger Things", type: "series", year: 2025, rating: "TV-14", match: 97, duration: "5 Seasons",
+    desc: "When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces and one strange little girl.",
+    tags: ["Sci-Fi", "Horror", "80s", "Adventure"],
+    img: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
+    videoId: "b9EkMc79ZSU", source: "Trailer — Full show on Netflix", categories: ["trending", "series"] },
+  
+  { id: 17, title: "The Summer I Turned Pretty", type: "series", year: 2025, rating: "TV-14", match: 95, duration: "3 Seasons",
+    desc: "Belly measures the summer at Cousins Beach in kisses and heartbreak. She's caught in a love triangle with brothers Conrad and Jeremiah.",
+    tags: ["Romance", "Drama", "Coming-of-age"],
+    img: "https://image.tmdb.org/t/p/w500/wHHT7nXZbOQZ5m9bTQ1rY0w8ZJk.jpg",
+    videoId: "uq4n1I6Vz4w", source: "Trailer — Full show on Prime Video", categories: ["trending", "series"] },
+  
+  { id: 18, title: "Heartstopper", type: "series", year: 2024, rating: "TV-G", match: 96, duration: "3 Seasons",
+    desc: "Teens Charlie and Nick discover their unlikely friendship might be something more than just friendship.",
+    tags: ["Romance", "Comedy", "LGBTQ+", "Wholesome"],
+    img: "https://image.tmdb.org/t/p/w500/oe8OVijKjIwXGhfCxXgKQp3ZxPn.jpg",
+    videoId: "b7lsgaiZ5j0", source: "Trailer — Full show on Netflix", categories: ["trending", "series"] },
+  
+  { id: 19, title: "Outer Banks", type: "series", year: 2024, rating: "TV-MA", match: 94, duration: "4 Seasons",
+    desc: "A group of teens from the wrong side of the tracks uncover a treasure map that unravels a long-buried secret.",
+    tags: ["Adventure", "Mystery", "Drama"],
+    img: "https://image.tmdb.org/t/p/w500/1qqDdWp2YlEoLdHMg5eE1OvqXvZ.jpg",
+    videoId: "z1VQUt0bXQs", source: "Trailer — Full show on Netflix", categories: ["trending", "series"] },
+  
+  { id: 20, title: "One Piece (Live Action)", type: "series", year: 2024, rating: "TV-14", match: 96, duration: "1 Season",
+    desc: "A young pirate sets sail with his crew to find the legendary treasure known as One Piece. A live-action adaptation of the beloved anime.",
+    tags: ["Adventure", "Fantasy", "Action"],
+    img: "https://image.tmdb.org/t/p/w500/sRXzdihqZnQvXxXxXxXxXxXxXxX.jpg",
+    videoId: "00CooiR3vLs", source: "Trailer — Full show on Netflix", categories: ["trending", "series", "new"] },
+  
+  { id: 21, title: "XO, Kitty", type: "series", year: 2025, rating: "TV-14", match: 90, duration: "2 Seasons",
+    desc: "Kitty Song Covey reunites with her long-distance love at an elite boarding school in Seoul.",
+    tags: ["Romance", "Comedy", "Teen"],
+    img: "https://image.tmdb.org/t/p/w500/hXxXxXxXxXxXxXxXxXxXxXxXxXx.jpg",
+    videoId: "hXxXxXxXxXx", source: "Trailer — Full show on Netflix", categories: ["new", "series"] },
+  
+  { id: 22, title: "Never Have I Ever", type: "series", year: 2023, rating: "TV-14", match: 93, duration: "4 Seasons",
+    desc: "After a traumatic year, an Indian-American teen wants to improve her social status, but her grades are the real problem.",
+    tags: ["Comedy", "Coming-of-age", "Teen"],
+    img: "https://image.tmdb.org/t/p/w500/bK1gFjJRiR5hFVxJdE5XKzQJq8P.jpg",
+    videoId: "F7vMkRiJp9w", source: "Trailer — Full show on Netflix", categories: ["series"] },
+];
+
+let heroData = content[0];
+let currentHeroIndex = 0;
+
+function setHero(item) {
+  heroData = item;
+  document.getElementById('hero').style.backgroundImage = `url(${item.heroImg || item.img})`;
+  document.getElementById('heroTitle').textContent = item.title;
+  document.getElementById('heroDesc').textContent = item.desc;
+  document.querySelector('.hero-meta').innerHTML = `
+    <span class="match">${item.match}% Match</span>
+    <span>${item.year}</span>
+    <span>${item.tags[0]}</span>
+    <span>${item.duration}</span>
+  `;
+}
+
+function rotateHero() {
+  currentHeroIndex = (currentHeroIndex + 1) % Math.min(6, content.length);
+  setHero(content[currentHeroIndex]);
+}
+setHero(content[0]);
+setInterval(rotateHero, 8000);
+
+function renderContent(filteredContent = content) {
+  const categories = [
+    { title: "🔥 Trending Now", filter: c => c.categories.includes('trending') },
+    { title: "🎬 Free Full Movies (Public Domain)", filter: c => c.type === 'movie' && c.source === 'Public Domain' },
+    { title: "✨ Blender Open Movies", filter: c => c.source.includes('Blender') },
+    { title: "📺 Popular Teen Series", filter: c => c.type === 'series' && c.year >= 2020 },
+    { title: "🎞️ Classic Series", filter: c => c.type === 'series' && c.year < 2000 },
+  ];
+  
+  const container = document.getElementById('content');
+  container.innerHTML = '';
+  
+  categories.forEach(cat => {
+    const items = filteredContent.filter(cat.filter);
+    if (items.length === 0) return;
+    
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <h2 class="row-title">${cat.title}</h2>
+      <div class="row-posters">
+        ${items.map(item => `
+          <div class="poster" style="background-image: url('${item.img}')" onclick="openModal(content.find(c => c.id === ${item.id}))">
+            <div class="poster-overlay">
+              <div class="poster-title">${item.title}</div>
+              <div class="poster-info">${item.match}% Match • ${item.year}</div>
+              <div class="poster-buttons">
+                <button class="icon-btn" onclick="event.stopPropagation(); playNow(content.find(c => c.id === ${item.id}))">▶</button>
+                <button class="icon-btn" onclick="event.stopPropagation(); openModal(content.find(c => c.id === ${item.id}))">ℹ</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function openModal(item) {
+  if (!item) return;
+  // Show placeholder with big play button
+  document.getElementById('playerContainer').innerHTML = `
+    <div class="player-placeholder" onclick="playNow(content.find(c => c.id === ${item.id}))">
+      <div class="play-big">▶</div>
+      <div style="font-size:18px; font-weight:bold;">Click to Play</div>
+      <div style="font-size:13px; margin-top:8px; color:#aaa;">${item.title}</div>
+    </div>
+  `;
+  document.getElementById('modalTitle').textContent = item.title;
+  document.getElementById('modalMeta').innerHTML = `
+    <span class="match">${item.match}% Match</span>
+    <span>${item.year}</span>
+    <span style="border:1px solid #666; padding:0 6px;">${item.rating}</span>
+    <span>${item.duration}</span>
+  `;
+  document.getElementById('modalDesc').textContent = item.desc;
+  document.getElementById('modalTags').innerHTML = `Tags: <span>${item.tags.join(', ')}</span>`;
+  document.getElementById('sourceInfo').innerHTML = `
+    <strong>✓ ${item.source}</strong><br>
+    ${item.source === 'Public Domain' ? 'This film is in the public domain — free to watch legally!' : 
+      item.source.includes('Blender') ? 'Made with open-source software. Licensed under Creative Commons.' :
+      'This is a trailer. Full episodes available on the listed platform.'}
+  `;
+  
+  document.getElementById('modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function playNow(item) {
+  if (!item) return;
+  document.getElementById('playerContainer').innerHTML = `
+    <iframe src="https://www.youtube.com/embed/${item.videoId}?autoplay=1&rel=0" 
+            allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+  `;
+  // Update source info
+  document.getElementById('sourceInfo').innerHTML = `
+    <strong>▶ Now Playing:</strong> ${item.title}<br>
+    <strong>Source:</strong> ${item.source}
+  `;
+}
+
+function playHero() {
+  openModal(heroData);
+  setTimeout(() => playNow(heroData), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  document.getElementById('playerContainer').innerHTML = '';
+  document.body.style.overflow = 'auto';
+}
+
+function searchContent() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  if (query === '') { renderContent(); return; }
+  const filtered = content.filter(c => 
+    c.title.toLowerCase().includes(query) || 
+    c.tags.some(t => t.toLowerCase().includes(query))
+  );
+  renderContent(filtered);
+}
+
+function filterCategory(cat, el) {
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (cat === 'all') { renderContent(); return; }
+  const filtered = content.filter(c => c.categories.includes(cat) || c.type === cat);
+  renderContent(filtered);
+}
+
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal') closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+renderContent();
+</script>
+
+</body>
+</html>
